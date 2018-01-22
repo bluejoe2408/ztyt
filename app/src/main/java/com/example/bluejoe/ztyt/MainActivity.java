@@ -13,12 +13,15 @@ import android.widget.Toast;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
+
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 public class MainActivity extends AppCompatActivity {
 
     private GLSurfaceView mGLSurfaceView1,mGLSurfaceView2;
+
 
 
     @Override
@@ -65,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
     private static class MyRenderer implements GLSurfaceView.Renderer {
         float[] camera1_position = {0.01f,0.0f,0.1f};
         double angle = 0.0f;
+        float radius = 0.1f;
 
 
         private static final String VERTEX_SHADER =
@@ -83,6 +87,23 @@ public class MainActivity extends AppCompatActivity {
                 -0.5f, -1, -2.5f,  // bottom left
                 1, -1, -2.5f,  // bottom right
         };
+        private float[]  createPositions(){
+            ArrayList<Float> data=new ArrayList<>();
+            data.add(0.0f);             //设置圆心坐标
+            data.add(0.0f);
+            data.add(-2.5f);
+            float angDegSpan=360f/10000;
+            for(float i=0;i<360+angDegSpan;i+=angDegSpan){
+                data.add((float) (radius*Math.sin(i*Math.PI/180f)));
+                data.add((float)(radius*Math.cos(i*Math.PI/180f)));
+                data.add(-2.5f);
+            }
+            float[] f=new float[data.size()];
+            for (int i=0;i<f.length;i++){
+                f[i]=data.get(i);
+            }
+            return f;
+        }
 
         private final FloatBuffer mVertexBuffer;
         private final float[] mMVPMatrix = new float[16];
@@ -93,10 +114,10 @@ public class MainActivity extends AppCompatActivity {
         private int mMatrixHandle;
 
         MyRenderer() {
-            mVertexBuffer = ByteBuffer.allocateDirect(VERTEX.length * 4)
+            mVertexBuffer = ByteBuffer.allocateDirect(createPositions().length * 4)
                     .order(ByteOrder.nativeOrder())
                     .asFloatBuffer()
-                    .put(VERTEX);
+                    .put(createPositions());
             mVertexBuffer.position(0);
         }
 
@@ -146,29 +167,16 @@ public class MainActivity extends AppCompatActivity {
         public void onDrawFrame(GL10 unused) {
             float[] tmpMatrix = new float[16];
             float radius = camera1_position[2] + 2.5f;
-
             camera1_position[2] = camera1_position[2];
-
             //camera1_position[2]= (float) (radius*Math.cos(Math.toRadians(angle))) - 2.5f;
             camera1_position[0]= (float) (radius*Math.sin(Math.toRadians(angle)))+0.01f;
             angle +=0.1;
-
             Matrix.setLookAtM(mViewMatrix, 0, camera1_position[0], camera1_position[1], camera1_position[2], 0f, 0f, -2.5f, 0f, 1.0f, 0.0f);
-
-
             System.arraycopy(mMVPMatrix, 0, tmpMatrix, 0, 16);
-
             Matrix.multiplyMM(mMVPMatrix, 0, mMVPMatrix, 0, mViewMatrix, 0);
-
             GLES20.glUniformMatrix4fv(mMatrixHandle, 1, false, mMVPMatrix, 0);
-
-
-            GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3);
-
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 10000);
             System.arraycopy(tmpMatrix, 0, mMVPMatrix, 0, 16);
-
-
-
         }
     }
     private static class MyRenderer2 implements GLSurfaceView.Renderer {
@@ -197,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
         private final float[] mMVPMatrix = new float[16];
         private final float[] mViewMatrix = new float[16];
 
+
         private int mProgram;
         private int mPositionHandle;
         private int mMatrixHandle;
@@ -216,22 +225,20 @@ public class MainActivity extends AppCompatActivity {
             return shader;
         }
 
+
+
         @Override
         public void onSurfaceCreated(GL10 unused, EGLConfig config) {
             GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
             mProgram = GLES20.glCreateProgram();
             int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SHADER);
             int fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
             GLES20.glAttachShader(mProgram, vertexShader);
             GLES20.glAttachShader(mProgram, fragmentShader);
             GLES20.glLinkProgram(mProgram);
-
             GLES20.glUseProgram(mProgram);
-
             mPositionHandle = GLES20.glGetAttribLocation(mProgram, "vPosition");
             mMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
-
             GLES20.glEnableVertexAttribArray(mPositionHandle);
             GLES20.glVertexAttribPointer(mPositionHandle, 3, GLES20.GL_FLOAT, false,
                     12, mVertexBuffer);
@@ -239,10 +246,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onSurfaceChanged(GL10 unused, int width, int height) {
-
-
             GLES20.glViewport(0, 0, width, height);
-
             // Set the camera position (View matrix)
             Matrix.setLookAtM(mViewMatrix, 0, camera1_position[0], camera1_position[1], camera1_position[2], 0f, 0f, 0f, 0f, 1.0f, 0.0f);
             Matrix.perspectiveM(mMVPMatrix, 0, 45, (float) width / height, 0.1f, 100f);
@@ -254,30 +258,17 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onDrawFrame(GL10 unused) {
             float[] tmpMatrix = new float[16];
-            float radius = camera1_position[2] + 2.5f;
-
+            float radius = 2.6f;
             camera1_position[2] = camera1_position[2];
-
             //camera1_position[2]= (float) (radius*Math.cos(Math.toRadians(angle))) - 2.5f;
             camera1_position[0]= (float) (radius*Math.sin(Math.toRadians(angle)))-0.01f;
             angle +=0.1;
-
             Matrix.setLookAtM(mViewMatrix, 0, camera1_position[0], camera1_position[1], camera1_position[2], 0f, 0f, -2.5f, 0f, 1.0f, 0.0f);
-
-
             System.arraycopy(mMVPMatrix, 0, tmpMatrix, 0, 16);
-
             Matrix.multiplyMM(mMVPMatrix, 0, mMVPMatrix, 0, mViewMatrix, 0);
-
             GLES20.glUniformMatrix4fv(mMatrixHandle, 1, false, mMVPMatrix, 0);
-
-
             GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3);
-
             System.arraycopy(tmpMatrix, 0, mMVPMatrix, 0, 16);
-
-
-
         }
     }
 }
