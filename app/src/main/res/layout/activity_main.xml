@@ -5,11 +5,24 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.example.bluejoe.ztyt.MainActivity">
-
-    <android.opengl.GLSurfaceView
-        android:id="@+id/surface"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        />
+        android:orientation="horizontal">
+        <android.opengl.GLSurfaceView
+            android:id="@+id/surface1"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="match_parent"
+
+            />
+        <android.opengl.GLSurfaceView
+            android:id="@+id/surface2"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="match_parent"
+
+            />
+    </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

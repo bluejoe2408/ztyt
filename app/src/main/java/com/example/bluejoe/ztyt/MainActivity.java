@@ -18,7 +18,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 public class MainActivity extends AppCompatActivity {
 
-    private GLSurfaceView mGLSurfaceView;
+    private GLSurfaceView mGLSurfaceView1,mGLSurfaceView2;
 
 
     @Override
@@ -32,29 +32,38 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        mGLSurfaceView = (GLSurfaceView) findViewById(R.id.surface);
+        mGLSurfaceView1 = (GLSurfaceView) findViewById(R.id.surface1);
 
-        mGLSurfaceView.setEGLContextClientVersion(2);
-        mGLSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
-        mGLSurfaceView.setRenderer(new MyRenderer());
-        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+        mGLSurfaceView1.setEGLContextClientVersion(2);
+        mGLSurfaceView1.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        mGLSurfaceView1.setRenderer(new MyRenderer());
+        mGLSurfaceView1.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+
+
+        mGLSurfaceView2 = (GLSurfaceView) findViewById(R.id.surface2);
+
+        mGLSurfaceView2.setEGLContextClientVersion(2);
+        mGLSurfaceView2.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        mGLSurfaceView2.setRenderer(new MyRenderer2());
+        mGLSurfaceView2.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        mGLSurfaceView.onPause();
+        mGLSurfaceView1.onPause();
+        mGLSurfaceView2.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        mGLSurfaceView.onResume();
+        mGLSurfaceView1.onResume();
+        mGLSurfaceView2.onResume();
     }
 
     private static class MyRenderer implements GLSurfaceView.Renderer {
-        float[] camera1_position = {0.0f,0.0f,0.1f};
-        private int[][] viewport={{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}};
+        float[] camera1_position = {0.01f,0.0f,0.1f};
         double angle = 0.0f;
 
 
@@ -121,16 +130,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onSurfaceChanged(GL10 unused, int width, int height) {
-            /*viewport[0][0]=0;
-            viewport[0][1]=0;
-            viewport[0][2]=width/2;
-            viewport[0][3]=height;
 
-
-            viewport[1][0]=width/2;
-            viewport[1][1]=0;
-            viewport[1][2]=width/2;
-            viewport[1][3]=height;*/
 
             GLES20.glViewport(0, 0, width, height);
 
@@ -146,15 +146,11 @@ public class MainActivity extends AppCompatActivity {
         public void onDrawFrame(GL10 unused) {
             float[] tmpMatrix = new float[16];
             float radius = camera1_position[2] + 2.5f;
-            /*for(int i=0;i<2;i++){
-                unused.glViewport(viewport[i][0], viewport[i][1], viewport[i][2], viewport[i][3]);
-                unused.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
-                unused.glLoadIdentity();
-            }*/
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+
+            camera1_position[2] = camera1_position[2];
 
             //camera1_position[2]= (float) (radius*Math.cos(Math.toRadians(angle))) - 2.5f;
-            camera1_position[0]= (float) (radius*Math.sin(Math.toRadians(angle)));
+            camera1_position[0]= (float) (radius*Math.sin(Math.toRadians(angle)))+0.01f;
             angle +=0.1;
 
             Matrix.setLookAtM(mViewMatrix, 0, camera1_position[0], camera1_position[1], camera1_position[2], 0f, 0f, -2.5f, 0f, 1.0f, 0.0f);
@@ -170,6 +166,117 @@ public class MainActivity extends AppCompatActivity {
             GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3);
 
             System.arraycopy(tmpMatrix, 0, mMVPMatrix, 0, 16);
+
+
+
+        }
+    }
+    private static class MyRenderer2 implements GLSurfaceView.Renderer {
+        float[] camera1_position = {-0.01f,0.0f,0.1f};
+        double angle = 0.0f;
+
+
+        private static final String VERTEX_SHADER =
+                "attribute vec4 vPosition;\n"
+                        + "uniform mat4 uMVPMatrix;\n"
+                        + "void main() {\n"
+                        + "  gl_Position = uMVPMatrix * vPosition;\n"
+                        + "}";
+        private static final String FRAGMENT_SHADER =
+                "precision mediump float;\n"
+                        + "void main() {\n"
+                        + "  gl_FragColor = vec4(0.5, 0, 0, 1);\n"
+                        + "}";
+        private static final float[] VERTEX = {   // in counterclockwise order:
+                0, 1, -2.5f,  // top
+                -0.5f, -1, -2.5f,  // bottom left
+                1, -1, -2.5f,  // bottom right
+        };
+
+        private final FloatBuffer mVertexBuffer;
+        private final float[] mMVPMatrix = new float[16];
+        private final float[] mViewMatrix = new float[16];
+
+        private int mProgram;
+        private int mPositionHandle;
+        private int mMatrixHandle;
+
+        MyRenderer2() {
+            mVertexBuffer = ByteBuffer.allocateDirect(VERTEX.length * 4)
+                    .order(ByteOrder.nativeOrder())
+                    .asFloatBuffer()
+                    .put(VERTEX);
+            mVertexBuffer.position(0);
+        }
+
+        static int loadShader(int type, String shaderCode) {
+            int shader = GLES20.glCreateShader(type);
+            GLES20.glShaderSource(shader, shaderCode);
+            GLES20.glCompileShader(shader);
+            return shader;
+        }
+
+        @Override
+        public void onSurfaceCreated(GL10 unused, EGLConfig config) {
+            GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+            mProgram = GLES20.glCreateProgram();
+            int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SHADER);
+            int fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+            GLES20.glAttachShader(mProgram, vertexShader);
+            GLES20.glAttachShader(mProgram, fragmentShader);
+            GLES20.glLinkProgram(mProgram);
+
+            GLES20.glUseProgram(mProgram);
+
+            mPositionHandle = GLES20.glGetAttribLocation(mProgram, "vPosition");
+            mMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
+
+            GLES20.glEnableVertexAttribArray(mPositionHandle);
+            GLES20.glVertexAttribPointer(mPositionHandle, 3, GLES20.GL_FLOAT, false,
+                    12, mVertexBuffer);
+        }
+
+        @Override
+        public void onSurfaceChanged(GL10 unused, int width, int height) {
+
+
+            GLES20.glViewport(0, 0, width, height);
+
+            // Set the camera position (View matrix)
+            Matrix.setLookAtM(mViewMatrix, 0, camera1_position[0], camera1_position[1], camera1_position[2], 0f, 0f, 0f, 0f, 1.0f, 0.0f);
+            Matrix.perspectiveM(mMVPMatrix, 0, 45, (float) width / height, 0.1f, 100f);
+            // Calculate the projection and view transformation
+            Matrix.multiplyMM(mMVPMatrix, 0, mMVPMatrix, 0, mViewMatrix, 0);
+
+        }
+
+        @Override
+        public void onDrawFrame(GL10 unused) {
+            float[] tmpMatrix = new float[16];
+            float radius = camera1_position[2] + 2.5f;
+
+            camera1_position[2] = camera1_position[2];
+
+            //camera1_position[2]= (float) (radius*Math.cos(Math.toRadians(angle))) - 2.5f;
+            camera1_position[0]= (float) (radius*Math.sin(Math.toRadians(angle)))-0.01f;
+            angle +=0.1;
+
+            Matrix.setLookAtM(mViewMatrix, 0, camera1_position[0], camera1_position[1], camera1_position[2], 0f, 0f, -2.5f, 0f, 1.0f, 0.0f);
+
+
+            System.arraycopy(mMVPMatrix, 0, tmpMatrix, 0, 16);
+
+            Matrix.multiplyMM(mMVPMatrix, 0, mMVPMatrix, 0, mViewMatrix, 0);
+
+            GLES20.glUniformMatrix4fv(mMatrixHandle, 1, false, mMVPMatrix, 0);
+
+
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3);
+
+            System.arraycopy(tmpMatrix, 0, mMVPMatrix, 0, 16);
+
+
 
         }
     }
